@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Canvas Stock Picks</title>
+    <style>
+      body { background:#f8fafc; margin:0; font-family:sans-serif; }
+      canvas { display:block; margin:20px auto; border:1px solid #cbd5e1; background:white; }
+    </style>
+  </head>
+  <body>
+    <canvas id="board" width="900" height="600"></canvas>
+    <script>
+      const ctx = document.getElementById('board').getContext('2d');
+      const symbols = ['AAPL','MSFT','NVDA','GOOGL','AMZN'];
+
+      function generateSeries(base){
+        const out=[]; let price=base;
+        for(let i=0;i<60;i++){
+          price = price * (1 + (Math.random()-0.5)/20);
+          out.push(price);
+        }
+        return out;
+      }
+
+      const series={
+        AAPL:generateSeries(190),
+        MSFT:generateSeries(400),
+        NVDA:generateSeries(120),
+        GOOGL:generateSeries(170),
+        AMZN:generateSeries(180)
+      };
+
+      function sma(arr,p){
+        const out=[];
+        for(let i=0;i<arr.length;i++){
+          if(i<p-1){ out.push(null); continue; }
+          let sum=0; for(let j=i-p+1;j<=i;j++) sum+=arr[j];
+          out.push(sum/p);
+        }
+        return out;
+      }
+
+      function analyze(symbol){
+        const closes=series[symbol];
+        const ma20=sma(closes,20);
+        const today=closes[closes.length-1];
+        const avg=ma20[ma20.length-1];
+        const diffPct=(today-avg)/avg;
+        const reason=diffPct>0?`Price ${(diffPct*100).toFixed(2)}% above 20d SMA`:`Price ${(diffPct*100).toFixed(2)}% below 20d SMA`;
+        return {symbol,today,diffPct,reason};
+      }
+
+      const results=symbols.map(analyze).sort((a,b)=>b.diffPct-a.diffPct);
+      const buys=results.slice(0,3);
+      const sells=results.slice(-3).reverse();
+
+      function draw(){
+        ctx.clearRect(0,0,900,600);
+        ctx.fillStyle='#0f172a';
+        ctx.font='24px sans-serif';
+        ctx.fillText('Daily Stock Picks',20,40);
+        ctx.font='16px sans-serif';
+        ctx.fillText(new Date().toISOString().slice(0,10),20,70);
+
+        ctx.fillStyle='#16a34a';
+        ctx.fillText('Top Buys',20,110);
+        buys.forEach((b,i)=>{
+          ctx.fillText(`${i+1}. ${b.symbol} - ${b.reason}`,20,140+i*30);
+        });
+
+        ctx.fillStyle='#dc2626';
+        ctx.fillText('Top Sells',20,240);
+        sells.forEach((s,i)=>{
+          ctx.fillText(`${i+1}. ${s.symbol} - ${s.reason}`,20,270+i*30);
+        });
+
+        ctx.fillStyle='#334155';
+        ctx.font='12px sans-serif';
+        ctx.fillText('Demo data only. Not investment advice.',20,560);
+      }
+
+      draw();
+    </script>
+  </body>
+</html>
